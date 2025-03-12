@@ -20,7 +20,7 @@ if not token:
 else:
     print(f"Token successfully loaded: {token[:5]}****")  # トークンの一部のみ表示で安全性を確保
 
-# intentsを設定し、Botオブジェクトを作成
+# intents を設定し、Bot オブジェクトを作成
 intents = discord.Intents.default()
 intents.members = True
 
@@ -38,7 +38,7 @@ bot = MyBot()
 
 # ウェルカムメッセージとロール設定
 welcome_channel_id = 1165799413558542446  # ウェルカムメッセージを送信するチャンネルID
-role_id = 1165785520593436764  # メンションしたいロールのID
+role_id = 1165785520593436764             # メンションしたいロールのID
 
 # 管理者のDiscordユーザーIDリスト
 admin_user_ids = [1073863060843937812, 1175571621025689661]
@@ -50,7 +50,7 @@ target_user_ids = [1175571621025689661, 1073863060843937812]
 welcome_sent = False
 wait_time = 50  # 秒単位の待機時間
 
-# ロガーを設定
+# ロガーの設定
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("aiohttp.server")
 
@@ -143,27 +143,31 @@ async def health_check(request):
     current_time = time.time()
     return web.json_response({"status": "ok"})
 
-# aiohttpサーバーを起動
+# aiohttpサーバーを起動 (Railway用に動的ポート設定)
 async def start_web_server():
     logger.info("Starting web server...")
     app = web.Application(middlewares=[log_requests])
     app.router.add_get("/health", health_check)
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", 8080)
+    port = int(os.environ.get("PORT", 8080))  # Railway環境変数からポート取得
+    site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
+    logger.info(f"Web server started on port {port}")
 
-# 定期PingをRenderに送信してアイドル状態を防ぐ
+# 定期PingをRailway用URLに送信してアイドル状態を防ぐ (keep_aliveタスク)
 async def keep_alive():
     logger.info("Starting keep_alive task...")
+    # Railway のURLは環境変数 "RAILWAY_URL" などで指定（未設定の場合は適宜defaultを記入）
+    railway_url = os.environ.get("RAILWAY_URL", "https://your-project-name.up.railway.app")
     async with ClientSession() as session:
         while True:
             try:
                 async with lock:
-                    async with session.get("https://bot-2ptf.onrender.com/health") as resp:
-                        logger.info(f"Pinged Render: {resp.status}")
+                    async with session.get(f"{railway_url}/health") as resp:
+                        logger.info(f"Pinged Railway: {resp.status}")
             except Exception as e:
-                logger.error(f"Failed to ping Render: {e}")
+                logger.error(f"Failed to ping Railway: {e}")
             await asyncio.sleep(300)
 
 # 複数ユーザーに1時間ごとにDMを送信するタスク
@@ -201,13 +205,13 @@ async def on_ready():
     else:
         logger.info("send_dm task is already running.")
 
-# メイン関数でBotとWebサーバーを並行実行
+# メイン関数で Bot と Webサーバーを並行実行
 async def main():
     logger.info("Starting main function...")
     await asyncio.gather(
-        bot.start(token),   # Discord Botを起動
-        start_web_server(),  # Webサーバーを起動
-        keep_alive()         # RenderへのPing処理を実行
+        bot.start(token),   # Discord Bot を起動
+        start_web_server(),  # Webサーバーを起動 (Railway 用 動的ポート)
+        keep_alive()         # Railway への Ping タスクを実行
     )
 
 if __name__ == "__main__":
