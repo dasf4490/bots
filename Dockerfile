@@ -17,4 +17,4 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 COPY . .
 
 # コンテナ起動時に bot.py を実行
-CMD ["/opt/venv/bin/python", "main.py"]
+CMD ["/opt/venv/bin/python", "bot.py"]
