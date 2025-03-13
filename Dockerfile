@@ -7,7 +7,7 @@ WORKDIR /app
 # 依存関係ファイルをコピー
 COPY requirements.txt .
 
-# BuildKit のキャッシュを使用して、仮想環境の作成とパッケージのインストールを実施
+# BuildKit のキャッシュマウントを利用して、仮想環境の作成およびパッケージのインストール
 RUN --mount=type=cache,target=/root/.cache/pip \
     python -m venv /opt/venv && \
     . /opt/venv/bin/activate && \
@@ -17,4 +17,4 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 COPY . .
 
 # コンテナ起動時に bot.py を実行
-CMD ["/opt/venv/bin/python", "bot.py"]
+CMD ["/opt/venv/bin/python", "main.py"]
